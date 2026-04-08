@@ -36,67 +36,27 @@ st.write("歡迎來到你的專屬 AI 投資網頁！請在下方貼上一段新
 # 給你貼上新聞內容的框框
 news_input = st.text_area("🗞️ 請在此貼上新聞內容：", height=200)
 
-# 點擊按鈕後執行的動作
-if st.button("✨ 開始 AI 摘要"):
-    if news_input: # 如果框框裡有文字
-        with st.spinner("AI 正在閱讀並整理重點，請稍候..."):
-            # 呼叫 AI 幫忙
-            result = get_ai_summary(news_input)
-            
-            # 顯示結果
-            st.success("整理完成！")
-            st.write("### 🤖 你的重點摘要：")
-            st.info(result)
-    else:
-        st.warning("老闆，你要先貼上新聞內容啦！")
-import pandas as pd
-import requests
-
-st.write("---") # 畫一條分隔線
-st.write("### 📅 法說會搶先看雷達")
-st.write("資料來源：公開資訊觀測站 (即將舉辦的法說會)")
-
 # 只要按下按鈕，就去官方網站抓資料
 if st.button("📡 啟動雷達，抓取最新行事曆"):
-    with st.spinner("正在潛入公開資訊觀測站抓取資料..."):
+    with st.spinner("正在透過工程師 VIP 通道抓取資料..."):
         try:
-            # 公開資訊觀測站的隱藏 API 網址
-            url = "https://mops.twse.com.tw/mops/web/ajax_t100sb07_1"
+            # 改用「台灣證交所 Open API」 (專門給機器讀的，絕對不會擋！)
+            url = "https://openapi.twse.com.tw/v1/company/investorConference"
             
-         # 給伺服器的通關密語 (設定抓取最新的資料)
-            payload = {
-                "encodeURIComponent": "1",
-                "step": "1",
-                "firstin": "1",
-                "off": "1",
-                "TYPEK": "all",
-                "isnew": "true" 
-            }
+            # 發送請求 (不用偽裝面具了，光明正大地走進去)
+            res = requests.get(url)
             
-            # 🕵️‍♂️ 新增這段：幫我們的程式穿上「人類瀏覽器」的偽裝面具
-            # 🕵️‍♂️ 新增這段：幫我們的程式穿上偽裝面具，並帶上「大門通行證 (Referer)」
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                "Referer": "https://mops.twse.com.tw/mops/web/t100sb07_1",
-                "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7"
-            }
+            # 把拿到的 JSON 資料直接轉換成表格
+            import pandas as pd
+            df = pd.DataFrame(res.json())
             
-            # 發送請求 (記得把 headers 面具也戴上)
-            res = requests.post(url, data=payload, headers=headers, verify=False)
-            res.encoding = 'utf8' # 確保中文不會變成亂碼
+            # 挑選我們在乎的欄位，並把英文標題換成中文
+            df = df[['Code', 'Name', 'Date', 'Time', 'Location']]
+            df.columns = ['公司代號', '公司名稱', '法說會日期', '法說會時間', '法說會地點']
             
-            # 🔮 魔法發生在這裡：直接把網頁裡的 HTML 轉換成表格
-            dfs = pd.read_html(res.text)
-            
-            # 取出第一個表格
-            df = dfs[0]
-            
-            # 我們只挑選我們在乎的欄位
-            df = df[['公司代號', '公司名稱', '法說會日期', '法說會時間', '法說會地點']]
-            
-            # 把表格漂亮地顯示在 Streamlit 網頁上
+            # 把表格漂亮地顯示在網頁上
             st.dataframe(df, use_container_width=True)
-            st.success("抓取成功！快看看有沒有你關注的股票！")
+            st.success("✅ 突破封鎖！成功取得最新法說會日程！")
             
         except Exception as e:
             st.error(f"哎呀，雷達訊號中斷了：{e}")
