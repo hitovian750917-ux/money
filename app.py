@@ -4,52 +4,49 @@ import json
 import os
 import yfinance as yf
 import plotly.graph_objects as go
-import time
 
-st.set_page_config(page_title="V4.6 終極黑馬雷達", layout="wide")
-st.title("🚀 V4.6 自動選股 + 即時 K 線雷達")
+st.set_page_config(page_title="V4.7 終極黑馬雷達", layout="wide")
+st.title("🚀 V4.7 黑馬雷達 (含現價與月線分析)")
 
-# --- 1. 讀取機器人掃描結果 ---
 if os.path.exists('result.json'):
     try:
         df_list = pd.read_json('result.json')
-        st.write("### 📅 今日法人認養清單 (點選下方下拉選單查看 K 線)")
         
-        # 讓表格變得可以點選
+        # --- 表格顯示 ---
+        st.write("### 📅 今日法人認養精選 (含最新現價)")
+        # 重排順序，把收盤價往前放
+        cols = ['代號', '名稱', '收盤價', '今日漲幅', '外資買超', '成交量']
+        st.dataframe(df_list[cols], use_container_width=True)
+        
+        # --- 下拉選單 ---
         options = df_list['代號'].astype(str) + " " + df_list['名稱']
-        selected_stock = st.selectbox("請選擇要查看的股票：", options)
+        selected_stock = st.selectbox("🎯 點選查看 K 線與均線位階：", options, index=None, placeholder="請選擇股票...")
         
-        # 顯示完整清單
-        st.dataframe(df_list, use_container_width=True)
-        
-        # --- 2. 即時畫出 K 線與 MA20 (加上錯誤處理機制) ---
         if selected_stock:
             stock_id = str(selected_stock.split(" ")[0]) + ".TW"
-            with st.spinner(f"正在連線 Yahoo 獲取 {selected_stock} 資料..."):
-                try:
-                    # 💡 技巧：稍微停個 0.5 秒，不要太暴力
-                    time.sleep(0.5) 
-                    ticker = yf.Ticker(stock_id)
-                    df_k = ticker.history(period="6mo")
-                    
-                    if not df_k.empty:
-                        df_k['MA20'] = df_k['Close'].rolling(window=20).mean()
-                        fig = go.Figure(data=[
-                            go.Candlestick(x=df_k.index, open=df_k['Open'], high=df_k['High'], low=df_k['Low'], close=df_k['Close'], name="K線"),
-                            go.Scatter(x=df_k.index, y=df_k['MA20'], line=dict(color='orange', width=2), name="20日均線 (月線)")
-                        ])
-                        fig.update_layout(title=f"{selected_stock} 歷史走勢", xaxis_rangeslider_visible=False, height=500)
-                        st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.info("⚠️ 該股票代號暫無 K 線資料（可能是新股或資料庫更新中）。")
-                        
-                except Exception as e:
-                    if "RateLimit" in str(e):
-                        st.error("🚫 【流量限制】Yahoo 股市暫時拒絕連線。請等 1 分鐘後再點選，或換一檔試試看。")
-                    else:
-                        st.error(f"❌ 發生預期外的錯誤：{e}")
+            # 從清單中找出該股的現價與漲幅
+            current_row = df_list[df_list['代號'].astype(str) == selected_stock.split(" ")[0]].iloc[0]
+            
+            # 用大字體顯示現價
+            c1, c2 = st.columns(2)
+            c1.metric("當前股價", f"${current_row['收盤價']}", f"{current_row['今日漲幅']}%")
+            
+            with st.spinner(f"正在繪製 {selected_stock} 的技術線圖..."):
+                @st.cache_data(ttl=3600)
+                def get_data(sid):
+                    return yf.Ticker(sid).history(period="6mo")
+                
+                df_k = get_data(stock_id)
+                if not df_k.empty:
+                    df_k['MA20'] = df_k['Close'].rolling(window=20).mean()
+                    fig = go.Figure(data=[
+                        go.Candlestick(x=df_k.index, open=df_k['Open'], high=df_k['High'], low=df_k['Low'], close=df_k['Close'], name="K線"),
+                        go.Scatter(x=df_k.index, y=df_k['MA20'], line=dict(color='orange', width=2), name="20日月線")
+                    ])
+                    fig.update_layout(xaxis_rangeslider_visible=False, height=500, margin=dict(t=30, b=0))
+                    st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"讀取選股名單失敗：{e}")
+        st.error(f"資料讀取錯誤：{e}")
 else:
-    st.warning("⏳ 掃描機器人正在努力運算中，請稍後再試...")
+    st.warning("⏳ 機器人正在掃描 1700 檔股票，請稍後...")
