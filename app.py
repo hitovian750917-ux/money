@@ -63,7 +63,7 @@ if st.button("📡 啟動雷達，抓取最新行事曆"):
             # 公開資訊觀測站的隱藏 API 網址
             url = "https://mops.twse.com.tw/mops/web/ajax_t100sb07_1"
             
-            # 給伺服器的通關密語 (設定抓取最新的資料)
+         # 給伺服器的通關密語 (設定抓取最新的資料)
             payload = {
                 "encodeURIComponent": "1",
                 "step": "1",
@@ -73,8 +73,13 @@ if st.button("📡 啟動雷達，抓取最新行事曆"):
                 "isnew": "true" 
             }
             
-            # 發送請求
-            res = requests.post(url, data=payload, verify=False)
+            # 🕵️‍♂️ 新增這段：幫我們的程式穿上「人類瀏覽器」的偽裝面具
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            }
+            
+            # 發送請求 (記得把 headers 面具也戴上)
+            res = requests.post(url, data=payload, headers=headers, verify=False)
             res.encoding = 'utf8' # 確保中文不會變成亂碼
             
             # 🔮 魔法發生在這裡：直接把網頁裡的 HTML 轉換成表格
