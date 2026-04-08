@@ -1,3 +1,5 @@
+import pandas as pd
+import requests
 import streamlit as st
 import google.generativeai as genai
 
@@ -47,3 +49,46 @@ if st.button("✨ 開始 AI 摘要"):
             st.info(result)
     else:
         st.warning("老闆，你要先貼上新聞內容啦！")
+import pandas as pd
+import requests
+
+st.write("---") # 畫一條分隔線
+st.write("### 📅 法說會搶先看雷達")
+st.write("資料來源：公開資訊觀測站 (即將舉辦的法說會)")
+
+# 只要按下按鈕，就去官方網站抓資料
+if st.button("📡 啟動雷達，抓取最新行事曆"):
+    with st.spinner("正在潛入公開資訊觀測站抓取資料..."):
+        try:
+            # 公開資訊觀測站的隱藏 API 網址
+            url = "https://mops.twse.com.tw/mops/web/ajax_t100sb07_1"
+            
+            # 給伺服器的通關密語 (設定抓取最新的資料)
+            payload = {
+                "encodeURIComponent": "1",
+                "step": "1",
+                "firstin": "1",
+                "off": "1",
+                "TYPEK": "all",
+                "isnew": "true" 
+            }
+            
+            # 發送請求
+            res = requests.post(url, data=payload)
+            res.encoding = 'utf8' # 確保中文不會變成亂碼
+            
+            # 🔮 魔法發生在這裡：直接把網頁裡的 HTML 轉換成表格
+            dfs = pd.read_html(res.text)
+            
+            # 取出第一個表格
+            df = dfs[0]
+            
+            # 我們只挑選我們在乎的欄位
+            df = df[['公司代號', '公司名稱', '法說會日期', '法說會時間', '法說會地點']]
+            
+            # 把表格漂亮地顯示在 Streamlit 網頁上
+            st.dataframe(df, use_container_width=True)
+            st.success("抓取成功！快看看有沒有你關注的股票！")
+            
+        except Exception as e:
+            st.error(f"哎呀，雷達訊號中斷了：{e}")
