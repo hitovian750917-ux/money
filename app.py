@@ -74,8 +74,11 @@ if st.button("📡 啟動雷達，抓取最新行事曆"):
             }
             
             # 🕵️‍♂️ 新增這段：幫我們的程式穿上「人類瀏覽器」的偽裝面具
+            # 🕵️‍♂️ 新增這段：幫我們的程式穿上偽裝面具，並帶上「大門通行證 (Referer)」
             headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "Referer": "https://mops.twse.com.tw/mops/web/t100sb07_1",
+                "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7"
             }
             
             # 發送請求 (記得把 headers 面具也戴上)
