@@ -2,3 +2,5 @@ streamlit
 google-generativeai
 pandas
 lxml
+yfinance
+beautifulsoup4
