@@ -1,6 +1,5 @@
 streamlit
-google-generativeai
 pandas
-lxml
+requests
 yfinance
-beautifulsoup4
+plotly
