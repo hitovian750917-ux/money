@@ -31,41 +31,32 @@ def get_ai_summary(news_content):
 # 3. 網頁的外觀與按鈕設計
 st.title("投資助理：AI 法說會重點摘要")
 
-st.write("歡迎來到你的專屬 AI 投資網頁！請在下方貼上一段新聞內容，讓 AI 幫你畫重點。")
+import yfinance as yf
+import datetime
 
-# 給你貼上新聞內容的框框
-news_input = st.text_area("🗞️ 請在此貼上新聞內容：", height=200)
+st.write("---")
+st.write("### 📈 個股走勢 X 光機")
+st.write("資料來源：Yahoo Finance (全球股市皆可查！)")
 
-# 只要按下按鈕，就去官方網站抓資料
-# 只要按下按鈕，就去官方網站抓資料
-if st.button("📡 啟動雷達，抓取最新行事曆"):
-    with st.spinner("正在透過工程師 VIP 通道抓取資料..."):
+# 讓使用者輸入股票代號
+stock_id = st.text_input("請輸入股票代號 (台股請加 .TW，例如 2330.TW，美股直接輸入例如 AAPL)", "2330.TW")
+
+if st.button("📊 畫出近一個月走勢圖"):
+    with st.spinner(f"正在前往 Yahoo 股市撈取 {stock_id} 的資料..."):
         try:
-            # 台灣證交所 Open API
-            url = "https://openapi.twse.com.tw/v1/company/investorConference"
+            # 設定抓取的時間範圍 (設定為近 30 天)
+            end_date = datetime.date.today()
+            start_date = end_date - datetime.timedelta(days=30)
             
-            # 戴上人類瀏覽器的面具，以免被當成粗魯的機器人
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-            }
+            # 呼叫 yfinance 神器幫我們抓資料
+            data = yf.download(stock_id, start=start_date, end=end_date)
             
-            # 發送請求 (戴上面具 + 免除憑證檢查的通關密語)
-            res = requests.get(url, headers=headers, verify=False)
-            
-            # 把拿到的 JSON 資料轉換成表格
-            import pandas as pd
-            df = pd.DataFrame(res.json())
-            
-            # 挑選我們在乎的欄位，並把英文標題換成中文
-            df = df[['Code', 'Name', 'Date', 'Time', 'Location']]
-            df.columns = ['公司代號', '公司名稱', '法說會日期', '法說會時間', '法說會地點']
-            
-            # 把表格漂亮地顯示在網頁上
-            st.dataframe(df, use_container_width=True)
-            st.success("✅ 突破封鎖！成功取得最新法說會日程！")
-            
+            if data.empty:
+                st.warning("找不到這檔股票的資料，請檢查代號是否輸入正確喔！")
+            else:
+                # 只取出「收盤價 (Close)」來畫圖，並把圖表漂亮地顯示出來
+                st.line_chart(data['Close'])
+                st.success(f"✅ 成功繪製 {stock_id} 近一個月的走勢圖！")
+                
         except Exception as e:
-            st.error(f"哎呀，雷達訊號中斷了：{e}")
-            # 如果還是失敗，我們把警衛塞給我們的紙條內容印出來看看
-            if 'res' in locals():
-                st.info(f"保鑣塞給我們的紙條內容：{res.text[:200]}")
+            st.error(f"哎呀，撈取資料失敗了：{e}")
