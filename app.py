@@ -37,16 +37,22 @@ st.write("歡迎來到你的專屬 AI 投資網頁！請在下方貼上一段新
 news_input = st.text_area("🗞️ 請在此貼上新聞內容：", height=200)
 
 # 只要按下按鈕，就去官方網站抓資料
+# 只要按下按鈕，就去官方網站抓資料
 if st.button("📡 啟動雷達，抓取最新行事曆"):
     with st.spinner("正在透過工程師 VIP 通道抓取資料..."):
         try:
-            # 改用「台灣證交所 Open API」 (專門給機器讀的，絕對不會擋！)
+            # 台灣證交所 Open API
             url = "https://openapi.twse.com.tw/v1/company/investorConference"
             
-            # 發送請求 (加上通關密語，叫保鑣不要檢查憑證)
-            res = requests.get(url, verify=False)
+            # 戴上人類瀏覽器的面具，以免被當成粗魯的機器人
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            }
             
-            # 把拿到的 JSON 資料直接轉換成表格
+            # 發送請求 (戴上面具 + 免除憑證檢查的通關密語)
+            res = requests.get(url, headers=headers, verify=False)
+            
+            # 把拿到的 JSON 資料轉換成表格
             import pandas as pd
             df = pd.DataFrame(res.json())
             
@@ -60,3 +66,6 @@ if st.button("📡 啟動雷達，抓取最新行事曆"):
             
         except Exception as e:
             st.error(f"哎呀，雷達訊號中斷了：{e}")
+            # 如果還是失敗，我們把警衛塞給我們的紙條內容印出來看看
+            if 'res' in locals():
+                st.info(f"保鑣塞給我們的紙條內容：{res.text[:200]}")
