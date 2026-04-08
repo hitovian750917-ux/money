@@ -74,7 +74,7 @@ if st.button("📡 啟動雷達，抓取最新行事曆"):
             }
             
             # 發送請求
-            res = requests.post(url, data=payload)
+            res = requests.post(url, data=payload, verify=False)
             res.encoding = 'utf8' # 確保中文不會變成亂碼
             
             # 🔮 魔法發生在這裡：直接把網頁裡的 HTML 轉換成表格
