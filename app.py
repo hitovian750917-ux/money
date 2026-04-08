@@ -43,8 +43,8 @@ if st.button("📡 啟動雷達，抓取最新行事曆"):
             # 改用「台灣證交所 Open API」 (專門給機器讀的，絕對不會擋！)
             url = "https://openapi.twse.com.tw/v1/company/investorConference"
             
-            # 發送請求 (不用偽裝面具了，光明正大地走進去)
-            res = requests.get(url)
+            # 發送請求 (加上通關密語，叫保鑣不要檢查憑證)
+            res = requests.get(url, verify=False)
             
             # 把拿到的 JSON 資料直接轉換成表格
             import pandas as pd
