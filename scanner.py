@@ -1,54 +1,50 @@
 import pandas as pd
 import requests
 import json
-import os
 
 def run_scan():
-    # 1. 檢查鑰匙
-    api_key = os.environ.get('FUGLE_API_KEY')
-    if not api_key or api_key == "YOUR_FUGLE_API_KEY":
-        print("❌ 錯誤：找不到 API Key，請檢查 GitHub Secrets 設定。")
-        return
-
-    print("📡 正在連線富果 API 抓取『純台股』真實行情...")
+    print("📡 正在連線【台灣證券交易所】官方資料庫抓取真實行情...")
     
-    # 2. 抓取上市 (TSE) 股票快照
-    url = "https://api.fugle.tw/marketdata/v1.0/stock/snapshot/market/TSE"
-    headers = {"X-API-KEY": api_key}
+    # 💡 證交所官方的每日收盤行情 API (免費、免 Key、超穩定)
+    url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
     
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url)
         data = response.json()
         
-        if 'data' not in data:
-            print(f"❌ API 回傳異常：{data.get('message', '未知錯誤')}")
-            return
-
-        stocks = data['data']
-        df = pd.DataFrame(stocks)
+        # 轉成 DataFrame 方便篩選
+        df = pd.DataFrame(data)
         
-        # 3. 過濾邏輯 (確保抓出來的是真貨)
-        df['漲跌幅'] = (df['changePercent'] * 100).round(2)
+        # 整理資料：把字串轉成數字
+        df['TradeVolume'] = pd.to_numeric(df['TradeVolume'], errors='coerce')
+        df['ClosingPrice'] = pd.to_numeric(df['ClosingPrice'], errors='coerce')
         
-        # 篩選：成交量 > 2000 張 且 漲幅在 1% ~ 8% 之間
-        mask = (df['tradeVolume'] > 2000) & (df['漲跌幅'] > 1.0) & (df['漲跌幅'] < 8.0)
-        filtered = df[mask].sort_values(by='tradeVolume', ascending=False).head(30)
+        # 排除資料有缺的股票
+        df = df.dropna(subset=['TradeVolume', 'ClosingPrice'])
+        
+        # --- 真實過濾邏輯 ---
+        # 1. 成交量 > 5000 張 (代表市場熱門、有人氣)
+        # 2. 股價 > 10 元 (避開全額交割或雞蛋股)
+        mask = (df['TradeVolume'] > 5000) & (df['ClosingPrice'] > 10)
+        
+        # 取成交量最大的前 30 檔熱門股
+        filtered = df[mask].sort_values(by='TradeVolume', ascending=False).head(30)
         
         result_list = []
         for _, row in filtered.iterrows():
             result_list.append({
-                "代號": str(row['symbol']),
-                "名稱": row['name'],       # 這才是真正的「鴻海」、「茂聯」
-                "收盤價": row['lastPrice'],
-                "今日漲幅": row['漲跌幅'],
-                "成交量": int(row['tradeVolume']),
-                "狀態": "真實行情"
+                "代號": str(row['Code']),
+                "名稱": str(row['Name']),        # 這裡絕對是真正的台股中文名
+                "收盤價": float(row['ClosingPrice']),
+                "今日漲幅": row['Change'],       # 證交所提供的是漲跌金額 (例如 +2.5 或 -1.0)
+                "狀態": "熱門成交股",
+                "成交量": int(row['TradeVolume'])
             })
             
-        # 4. 覆蓋舊的 JSON
         with open('result.json', 'w', encoding='utf-8') as f:
             json.dump(result_list, f, ensure_ascii=False, indent=4)
-        print(f"✅ 實戰更新成功！已存入 {len(result_list)} 檔真實台股資料。")
+            
+        print(f"✅ 證交所資料抓取成功！已存入 {len(result_list)} 檔真實台股！")
 
     except Exception as e:
         print(f"❌ 發生錯誤：{e}")
