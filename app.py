@@ -6,16 +6,17 @@ import yfinance as yf
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="V4.7 終極黑馬雷達", layout="wide")
-st.title("🚀 V4.7 黑馬雷達 (含現價與月線分析)")
+st.title("🚀 V4.7 黑馬雷達 (證交所實戰版)")
 
 if os.path.exists('result.json'):
     try:
         df_list = pd.read_json('result.json')
         
         # --- 表格顯示 ---
-        st.write("### 📅 今日法人認養精選 (含最新現價)")
-        # 重排順序，把收盤價往前放
-        cols = ['代號', '名稱', '收盤價', '今日漲幅', '外資買超', '成交量']
+        st.write("### 📅 今日熱門成交精選 (資料來源：台灣證券交易所)")
+        
+        # 💡 關鍵修正：這裡的欄位名稱，完全對齊我們剛剛換上的證交所 JSON
+        cols = ['代號', '名稱', '收盤價', '今日漲幅', '成交量', '狀態']
         st.dataframe(df_list[cols], use_container_width=True)
         
         # --- 下拉選單 ---
@@ -24,12 +25,11 @@ if os.path.exists('result.json'):
         
         if selected_stock:
             stock_id = str(selected_stock.split(" ")[0]) + ".TW"
-            # 從清單中找出該股的現價與漲幅
             current_row = df_list[df_list['代號'].astype(str) == selected_stock.split(" ")[0]].iloc[0]
             
-            # 用大字體顯示現價
             c1, c2 = st.columns(2)
-            c1.metric("當前股價", f"${current_row['收盤價']}", f"{current_row['今日漲幅']}%")
+            # 顯示現價與漲跌
+            c1.metric("當前股價", f"${current_row['收盤價']}", f"{current_row['今日漲幅']}")
             
             with st.spinner(f"正在繪製 {selected_stock} 的技術線圖..."):
                 @st.cache_data(ttl=3600)
@@ -47,6 +47,6 @@ if os.path.exists('result.json'):
                     st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"資料讀取錯誤：{e}")
+        st.error(f"資料讀取錯誤：請確認 scanner.py 已經成功跑完最新版本。詳細錯誤：{e}")
 else:
     st.warning("⏳ 機器人正在掃描 1700 檔股票，請稍後...")
